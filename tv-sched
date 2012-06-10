@@ -1,0 +1,147 @@
+#!/bin/bash
+
+# Schedule tv recordings
+
+. ~/.shell-colors
+declare CHANNEL_CONF="${HOME}/Mychannels.conf"
+declare SCHED_FILE="${HOME}/.sched-tv"
+[ -e $SCHED_FILE ] || touch $SCHED_FILE
+sort -k1n -k2n $SCHED_FILE | sed '/^$/d' > /tmp/sched-tv
+tmp_file=/tmp/sched-tv
+SUCCESS=0
+
+printf "\n$yell\tSchedule TV recordings\n\n"
+
+function check_file {
+    mytmp_file=$1
+    if [ `wc -l $mytmp_file | awk '{print $1}'` -lt 1 ]; then
+        printf "$cyan\tNo Current Recordings Scheduled\n"
+    else
+        printf "$cyan\n\tExisting Scheduled events\n$white"
+        while read -r line; do
+            printf "\t$line\n"
+        done < $mytmp_file
+        printf "\n"
+    fi
+}
+
+function exit_fail {
+    printf "$red\tNot setting schedule\n"
+    sort -k1n -k2n $tmp_file | sed '/^$/d' > $SCHED_FILE
+    check_file $SCHED_FILE
+    printf $reset
+    exit 0
+}
+
+function get_channels {
+    count=0
+    while read -r line; do
+        ((count++))
+        chan[$count]=`echo $line | cut -d ":" -f1`
+        #printf "COUNT = $count\n"
+    done < $CHANNEL_CONF
+}
+
+function get_input {
+    printf "$green\tAdd Day, Start & Finish Times and Channel\n\
+    \te.g. 20120607 930 1330 9.1\n\tOr Press Enter To Exit\n$yell\t"
+
+    read DAY START FINISH CHAN
+    check_input
+}
+
+function remove_entry {
+    entry=$1
+    num=0
+    debris=""
+    while read -r line; do
+        ((num++))
+        if [ $num == $entry ]; then
+            debris=$line
+            break
+        fi
+    done < $SCHED_FILE
+    sed "/$debris/d" $SCHED_FILE > $tmp_file
+    cp $tmp_file $SCHED_FILE
+    check_file $tmp_file
+    get_input
+}
+
+function check_input {
+    [ "$DAY" == "" ] && printf "$red\t** No Date Set **\n" && exit_fail
+    [ "$DAY" == "r" ] && [ "$START" != "" ] && remove_entry $START
+    [ "$START" == "" ] && printf "$red\t** No Start Time **\n" && get_input
+    [ "$FINISH" == "" ] && printf "$red\t** No End Time **\n" && get_input
+    [ "$CHAN" == "" ] && printf "$red\t** No Channel Set **\n" && get_input
+
+    endit=0
+    today=`date +%Y%m%d`
+    # Convenience checks
+    [ "$DAY" == "." ] && DAY=$today
+    [ "$DAY" == ".." ] && DAY=$(($today+1))
+    [ "$DAY" == "..." ] && DAY=$(($today+2))
+
+    if [ $(($DAY-($today-1))) -lt 1 ]; then
+        printf "$red\tWrong Date - $DAY - Today is $today\n"
+        get_input
+    fi
+
+    rec_start=`echo $START | sed -e 's/://'`
+    if [ $rec_start -gt 2400 -o $rec_start -lt 1 ]; then
+        printf "$red\tWrong Start Time - %s\n" $START
+        get_input
+    fi
+
+    rec_fin=`echo $FINISH | sed -e 's/://'`
+    if [ $rec_fin -lt $rec_start ]; then
+        printf "$red\tWrong End Time - %s\n" $FINISH
+        get_input
+    fi
+    now=`date +%k%M`
+    if [ $DAY == $today ] && [ $rec_fin -lt $now ]; then
+        printf "$red\n\tToo late - Time Now Is $now\n"
+        get_input
+    fi
+
+    for((i=1;i<=$count;i++)); do
+        if [ "$CHAN" == ${chan[$i]} ]; then
+            SUCCESS=1
+            break
+        fi
+    done
+    if [ $SUCCESS != 1 ]; then
+        printf "$red\tWrong Channel Set - $CHAN\n"
+        get_input
+    fi
+
+    while read -r prev_day prev_start prev_fin prev_chan; do
+        if [ $DAY == $prev_day ]; then
+            if [ $rec_start -ge $prev_start ] && [ $rec_start -lt $prev_fin ]; then
+                endit=1
+            fi
+            if [ $rec_start -le $prev_start ] && [ $rec_fin -ge $prev_start ]; then
+                endit=1
+            fi
+        fi
+        [ $endit == 1 ] && break
+    done < $mytmp_file
+    if [ $endit == 1 ]; then
+        printf "$red\n\tTime Conflict\n\n"
+        get_input
+    else
+        echo $DAY $START $FINISH $CHAN >> $tmp_file
+        sort -k1n -k2n $tmp_file | sed '/^$/d' > $SCHED_FILE
+        check_file $SCHED_FILE
+        get_input
+    fi
+}
+
+get_channels
+for((i=1;i<=$count;i+=2)); do
+    printf "$white\tCh $i = ${chan[$i]} \t\
+        Ch $(($i+1)) = ${chan[$(($i+1))]}\n"
+done
+check_file $tmp_file
+get_input
+
+exit 0

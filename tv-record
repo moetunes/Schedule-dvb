@@ -1,0 +1,81 @@
+#!/bin/bash
+
+set -o nounset
+shopt -s huponexit
+
+declare -i DVB_DEVICE_NUM="0"
+declare CHANNELS_CONF="${HOME}/Mychannels.conf"
+declare SAVE_FOLDER="${HOME}/TV/tele"
+declare SCHED_FILE="$HOME/.sched-tv"
+declare ZAP_COMMAND="tzap"
+declare -i SLEEP=15
+
+declare -i DAY="0"
+declare -i START="0"
+declare -i FINISH="0"
+declare CHAN="0"
+declare -i MINUTES=0
+declare -i SECONDS=0
+declare -i DECIMAL=0
+
+declare -i PIDOF_AZAP=0
+declare -i PIDOF_CAT=0
+
+function check_action {
+    [ -e "$SCHED_FILE" ] || waiting
+    [ `wc -l $SCHED_FILE | awk '{print $1}'` -lt 1 ] && waiting
+    TODAY=`date +%Y%m%d`
+    NOW=`date +%k%M`
+    while read -r DAY START FINISH CHAN; do
+        #printf "$DAY $START $FINISH $CHAN\n"
+        break
+    done < $SCHED_FILE
+    if [ $DAY == $TODAY ] && [ $START == $NOW ]; then
+        ${ZAP_COMMAND} -a ${DVB_DEVICE_NUM} -f ${DVB_DEVICE_NUM} -d ${DVB_DEVICE_NUM} \
+            -c $CHANNELS_CONF -r ${CHAN} >/dev/null 2>&1 &
+
+        let PIDOF_AZAP="${!}"
+
+        if (( ${PIDOF_AZAP} == 0 )); then
+            printf "Error starting azap.\n"
+            exit 1
+        fi
+        sleep 5
+        DECIMAL=$((${FINISH}-${START}))
+        if [ ${DECIMAL} -gt 99 ]; then
+            MINUTES=$((${DECIMAL}-((${DECIMAL}/100)*40)))
+        elif [ ${DECIMAL} -gt 59 ]; then
+            MINUTES=$((${DECIMAL}-40))
+        else
+            MINUTES=${DECIMAL}
+        fi
+        declare FILE_NAME="${SAVE_FOLDER}/TV-ch${CHAN}-`date +%Y.%m.%d-%H.%M`-${MINUTES}.min.mpg"
+        dd if=/dev/dvb/adapter${DVB_DEVICE_NUM}/dvr${DVB_DEVICE_NUM} of=${FILE_NAME} conv=noerror &
+        let PIDOF_CAT="${!}"
+
+        if (( ${PIDOF_CAT} == 0 )); then
+            printf "Error starting cat command on device file.\n"
+            kill ${PIDOF_AZAP}
+            exit 1
+        fi
+        SECONDS=$((${MINUTES}*60))
+        sleep ${SECONDS}s
+        kill ${PIDOF_CAT} ${PIDOF_AZAP}
+        #wait ${PIDOF_CAT} 2> /dev/null
+        #wait ${PIDOF_AZAP} 2> /dev/null
+
+        sed "/$DAY $START $FINISH $CHAN/d" $SCHED_FILE > /tmp/dummy
+        mv /tmp/dummy $SCHED_FILE
+        waiting
+    else
+        waiting
+    fi
+}
+
+function waiting {
+    sleep $SLEEP && check_action
+}
+
+check_action
+
+exit 0
