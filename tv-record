@@ -64,7 +64,7 @@ function check_action {
             REC_MINS=0
         fi
         MINUTES=$((${REC_START}+${REC_MINS}+(${REC_HOURS}*60)))
-        declare FILE_NAME="${SAVE_FOLDER}/TV-ch${CHAN}-`date +%Y.%m.%d-%H.%M`-${MINUTES}.min.mpg"
+        declare FILE_NAME="${SAVE_FOLDER}/TV-`date +%Y.%m.%d-%H.%M`-ch${CHAN}-${MINUTES}.min.mpg"
         dd if=/dev/dvb/adapter${DVB_DEVICE_NUM}/dvr${DVB_DEVICE_NUM} of=${FILE_NAME} conv=noerror &
         let PIDOF_CAT="${!}"
 
