@@ -22,7 +22,7 @@ e.g. 745 1130 1900
 
 Press enter to exit
 
-Press   r *space number*   to remove an entry from the list
+Press   *r space number*   to remove an entry from the list
 
 For convenience:
 
