@@ -1,51 +1,71 @@
-Schedule DVB recordings
+##Schedule DVB recordings
 
 There's two bash scripts with declarations at the top
 
-TV_SCHED
+###TV_SCHED
 
-The interface to the schedule file.
+**The interface to the schedule file.**
 
 It displays the available channels from the channel.conf, 
 shows any existing recordings, gives an example of an entry, 
 takes a new entry and checks for time conflicts and format, 
 adds the entry to the schedule file then loops in case there's more entries.
 
+Date is YearMonthDay with Month and Day zero padded.
+
+e.g. 20120611
+
+No leading zeros on the time and time is in 24hr format
+
+e.g. 745 1130 1900
+
 Press enter to exit
 
-    declare CHANNEL_CONF="${HOME}/Mychannels.conf"
+Press   r <space><number>   to remove an entry from the list
 
-	Make sure this is the same in tv-record
+For convenience:
 
-    declare SCHED_FILE="${HOME}/.sched-tv"
+    * one dot for today
 
-    File which has the schedule
+    * two dots for tomorrow
+
+    * three dots for the day after tomorrow
 
 
-TV_RECORD
 
-Sits in the background periodically checking the schedule file for something to record.
+    * declare CHANNEL_CONF="${HOME}/Mychannels.conf"
 
-	declare -i DVB_DEVICE_NUM="0"
+	* Make sure this is the same in tv-record
 
-	/dev/dvb/adapter? - should be ok with zero if there's only one dvb device
+    * declare SCHED_FILE="${HOME}/.sched-tv"
 
-	declare CHANNELS_CONF="${HOME}/Mychannels.conf"
+    * File which has the schedule
 
- 	Make sure this is the same in tv-sched
 
- 	declare SAVE_FOLDER="${HOME}/TV/tele"
+##TV_RECORD
 
-	Directory to save recordings to.
+**Sits in the background periodically checking the schedule file for something to record.**
 
-	declare SCHED_FILE="$HOME/.sched-tv"
+	* declare -i DVB_DEVICE_NUM="0"
 
-	File which has the schedule
+	* /dev/dvb/adapter? - should be ok with zero if there's only one dvb device
 
-	declare ZAP_COMMAND="tzap"
+	* declare CHANNELS_CONF="${HOME}/Mychannels.conf"
 
-	tzap for dvb-t, szap for dvb-s etc
+ 	* Make sure this is the same in tv-sched
 
-	declare -i SLEEP=15
+ 	* declare SAVE_FOLDER="${HOME}/TV/tele"
 
-	Time (in seconds) to wait between checks for something to record
+	* Directory to save recordings to.
+
+	* declare SCHED_FILE="$HOME/.sched-tv"
+
+	* File which has the schedule
+
+	* declare ZAP_COMMAND="tzap"
+
+	* tzap for dvb-t, szap for dvb-s etc
+
+	* declare -i SLEEP=15
+
+	* Time (in seconds) to wait between checks for something to record

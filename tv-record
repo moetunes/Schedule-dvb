@@ -41,6 +41,7 @@ function check_action {
             exit 1
         fi
         sleep 5
+        printf "SET CHANNEL ${CHAN}\n"
         DECIMAL=$((${FINISH}-${START}))
         if [ ${DECIMAL} -gt 99 ]; then
             MINUTES=$((${DECIMAL}-((${DECIMAL}/100)*40)))
@@ -58,14 +59,19 @@ function check_action {
             kill ${PIDOF_AZAP}
             exit 1
         fi
+        printf "RECORDING TO : ${FILE_NAME}\n"
         SECONDS=$((${MINUTES}*60))
         sleep ${SECONDS}s
-        kill ${PIDOF_CAT} ${PIDOF_AZAP}
-        #wait ${PIDOF_CAT} 2> /dev/null
-        #wait ${PIDOF_AZAP} 2> /dev/null
+        kill ${PIDOF_CAT} && wait ${PIDOF_CAT} 2> /dev/null
+
+        kill ${PIDOF_AZAP} && wait ${PIDOF_AZAP} 2> /dev/null
+
+
+        printf "FINISHED REC : ${FILE_NAME}\n"
 
         sed "/$DAY $START $FINISH $CHAN/d" $SCHED_FILE > /tmp/dummy
         mv /tmp/dummy $SCHED_FILE
+
         waiting
     else
         waiting
