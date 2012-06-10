@@ -52,10 +52,17 @@ function check_action {
             exit 1
         fi
         sleep 5
-        printf "SET CHANNEL ${CHAN}\n"
-        REC_START=$((${START}%100))
-        REC_HOURS=$((${FINISH}-${START}-1))
-        REC_MINS=$((${FINISH}%100))
+        printf "$green\tSET CHANNEL$cyan ${CHAN}\n"
+        REC_HOURS=$(((${FINISH}/100)-(${START}/100)-1))
+        if [ ${REC_HOURS} -lt 0 ]; then REC_HOURS=0;fi
+        if [ ${REC_HOURS} -gt 0 ]; then
+            REC_START=$((60-(${START}%100)))
+            REC_MINS=$((${FINISH}%100))
+        else
+            REC_START=$((${FINISH}-${START}))
+            if [ ${REC_START} -gt 60 ]; then REC_START=$((${REC_START}-40));fi
+            REC_MINS=0
+        fi
         MINUTES=$((${REC_START}+${REC_MINS}+(${REC_HOURS}*60)))
         declare FILE_NAME="${SAVE_FOLDER}/TV-ch${CHAN}-`date +%Y.%m.%d-%H.%M`-${MINUTES}.min.mpg"
         dd if=/dev/dvb/adapter${DVB_DEVICE_NUM}/dvr${DVB_DEVICE_NUM} of=${FILE_NAME} conv=noerror &
