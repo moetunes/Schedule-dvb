@@ -43,7 +43,7 @@ For convenience:
     * File which has the schedule
 
 
-##TV_RECORD
+###TV_RECORD
 
 **Sits in the background periodically checking the schedule file for something to record.**
 
