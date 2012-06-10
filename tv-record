@@ -16,9 +16,11 @@ declare -i DAY="0"
 declare -i START="0"
 declare -i FINISH="0"
 declare CHAN="0"
-declare -i MINUTES=0
-declare -i SECONDS=0
-declare -i DECIMAL=0
+declare -i MINUTES="0"
+declare -i SECONDS="0"
+declare -i REC_START="0"
+declare -i REC_HOURS="0"
+declare -i REC_MINS="0"
 
 declare -i PIDOF_AZAP=0
 declare -i PIDOF_CAT=0
@@ -51,14 +53,10 @@ function check_action {
         fi
         sleep 5
         printf "SET CHANNEL ${CHAN}\n"
-        DECIMAL=$((${FINISH}-${START}))
-        if [ ${DECIMAL} -gt 99 ]; then
-            MINUTES=$((${DECIMAL}-((${DECIMAL}/100)*40)))
-        elif [ ${DECIMAL} -gt 59 ]; then
-            MINUTES=$((${DECIMAL}-40))
-        else
-            MINUTES=${DECIMAL}
-        fi
+        REC_START=$((${START}%100))
+        REC_HOURS=$((${FINISH}-${START}-1))
+        REC_MINS=$((${FINISH}%100))
+        MINUTES=$((${REC_START}+${REC_MINS}+(${REC_HOURS}*60)))
         declare FILE_NAME="${SAVE_FOLDER}/TV-ch${CHAN}-`date +%Y.%m.%d-%H.%M`-${MINUTES}.min.mpg"
         dd if=/dev/dvb/adapter${DVB_DEVICE_NUM}/dvr${DVB_DEVICE_NUM} of=${FILE_NAME} conv=noerror &
         let PIDOF_CAT="${!}"

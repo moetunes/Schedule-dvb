@@ -8,7 +8,7 @@ in a channel.conf.
 **The interface to the schedule file.**
 
 It displays the available channels from the channel.conf, 
-shows any existing recordings, gives an example of an entry, 
+shows any existing schedules, gives an example of an entry, 
 takes a new entry and checks for time conflicts and format, 
 adds the entry to the schedule file then loops in case there's more entries.
 
