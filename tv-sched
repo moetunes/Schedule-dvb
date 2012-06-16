@@ -7,8 +7,8 @@ declare CHANNEL_CONF="${HOME}/Mychannels.conf"
 declare SCHED_FILE="${HOME}/.sched-tv"
 
 [ -e $SCHED_FILE ] || touch $SCHED_FILE
-sort -k1n -k2n $SCHED_FILE | sed '/^$/d' > /tmp/sched-tv
 tmp_file=/tmp/sched-tv
+sort -k1n -k2n $SCHED_FILE | sed '/^$/d' > $tmp_file
 SUCCESS=0
 
 red='\033[1;31m'
@@ -22,7 +22,7 @@ printf "\n$yell\tSchedule TV recordings\n\n"
 
 function check_file {
     mytmp_file=$1
-    if [ `wc -l $mytmp_file | awk '{print $1}'` -lt 1 ]; then
+    if [ "`cat $SCHED_FILE`" == "" ]; then
         printf "$cyan\tNo Current Recordings Scheduled\n"
     else
         printf "$cyan\n\tExisting Scheduled events\n$white"
@@ -48,13 +48,19 @@ function get_channels {
         chan[$count]=`echo $line | cut -d ":" -f1`
         #printf "COUNT = $count\n"
     done < $CHANNEL_CONF
+    for((i=1;i<=$count;i+=2)); do
+        printf "$white\tCh $i = ${chan[$i]} \t\
+            Ch $(($i+1)) = ${chan[$(($i+1))]}\n"
+    done
+
 }
 
 function get_input {
-    printf "$green\tAdd Day, Start & Finish Times and Channel\n\
-    \te.g. 20120607 930 1330 9.1\n\tOr Press Enter To Exit\n$yell\t"
+    check_file $SCHED_FILE
+    printf "$green\tAdd Day, Start & Finish Times, Channel and Name\n\
+    \te.g. 20120607 930 1330 9.1 MovieName\n\tOr Press Enter To Exit\n$yell\t"
 
-    read DAY START FINISH CHAN
+    read DAY START FINISH CHAN NAME
     check_input
 }
 
@@ -71,7 +77,6 @@ function remove_entry {
     done < $SCHED_FILE
     sed "/$debris/d" $SCHED_FILE > $tmp_file
     cp $tmp_file $SCHED_FILE
-    check_file $tmp_file
     get_input
 }
 
@@ -127,7 +132,7 @@ function check_input {
             if [ $rec_start -ge $prev_start ] && [ $rec_start -lt $prev_fin ]; then
                 endit=1
             fi
-            if [ $rec_start -le $prev_start ] && [ $rec_fin -ge $prev_start ]; then
+            if [ $rec_start -le $prev_start ] && [ $rec_fin -gt $prev_start ]; then
                 endit=1
             fi
         fi
@@ -137,19 +142,13 @@ function check_input {
         printf "$red\n\tTime Conflict\n\n"
         get_input
     else
-        echo $DAY $START $FINISH $CHAN >> $tmp_file
+        echo $DAY $START $FINISH $CHAN $NAME >> $tmp_file
         sort -k1n -k2n $tmp_file | sed '/^$/d' > $SCHED_FILE
-        check_file $SCHED_FILE
         get_input
     fi
 }
 
 get_channels
-for((i=1;i<=$count;i+=2)); do
-    printf "$white\tCh $i = ${chan[$i]} \t\
-        Ch $(($i+1)) = ${chan[$(($i+1))]}\n"
-done
-check_file $tmp_file
 get_input
 
 exit 0

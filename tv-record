@@ -17,7 +17,6 @@ declare -i START="0"
 declare -i FINISH="0"
 declare CHAN="0"
 declare -i MINUTES="0"
-declare -i SECONDS="0"
 declare -i REC_START="0"
 declare -i REC_HOURS="0"
 declare -i REC_MINS="0"
@@ -32,68 +31,88 @@ cyan='\033[1;36m'
 white='\033[1;37m'
 reset='\033[0m'
 
+function remove_entry {
+    sed "/$DAY $START $FINISH $CHAN $NAME/d" $SCHED_FILE > /tmp/dummy
+    mv /tmp/dummy $SCHED_FILE
+}
+
+function record_entry {
+    ${ZAP_COMMAND} -a ${DVB_DEVICE_NUM} -f ${DVB_DEVICE_NUM} -d ${DVB_DEVICE_NUM} \
+        -c $CHANNELS_CONF -r ${CHAN} >/dev/null 2>&1 &
+    PIDOF_AZAP=$!
+
+    if [ "$PIDOF_AZAP" == "" ]; then
+        printf "$red\tError starting ${ZAP_COMMAND}.\n\tFAILED: $CHAN $START\n"
+        remove_entry
+        exit 1
+    fi
+    printf "$green\tSET CHANNEL$cyan ${CHAN}\n"
+    REC_MINS=$((${START}%100))
+    REC_HOURS=0
+    MINUTES=0
+    REC_START=$(($START-$REC_MINS))
+    while [ $((${REC_START}+${REC_HOURS}+${REC_MINS})) -lt $FINISH ]; do
+        ((REC_MINS++))
+        ((MINUTES++))
+        if [ ${REC_MINS} -ge 60 ]; then
+            REC_MINS=0
+            ((REC_HOURS+=100))
+        fi
+    done
+
+    if [ "$NAME" == "" ]; then
+        declare FILE_NAME="${SAVE_FOLDER}/TV-`date +%Y%m%d-%H%M`-ch.${CHAN}-${MINUTES}.min.mpg"
+    else
+        declare FILE_NAME="${SAVE_FOLDER}/TV-${NAME}-${MINUTES}.min.mpg"
+    fi
+    dd if=/dev/dvb/adapter${DVB_DEVICE_NUM}/dvr${DVB_DEVICE_NUM} \
+        of=${FILE_NAME} conv=noerror &
+    PIDOF_CAT=$!
+
+    if (( ${PIDOF_CAT} == 0 )); then
+        printf "$red\tError Starting Recording.\n\t/dev/dvb/adapter${DVB_DEVICE_NUM}/dvr${DVB_DEVICE_NUM} Unavailable\n"
+        kill ${PIDOF_AZAP}
+        remove_entry
+        exit 1
+    fi
+    printf "$yell\tRECORDING TO :$cyan ${FILE_NAME}\n"
+    sleep ${MINUTES}m
+
+    kill ${PIDOF_CAT} && wait ${PIDOF_CAT} 2> /dev/null
+
+    # pkill $ZAP_COMMAND # && wait ${PIDOF_AZAP} 2> /dev/null
+    kill ${PIDOF_AZAP} && wait ${PIDOF_AZAP} 2> /dev/null
+
+    printf "$yell\tFINISHED REC :$cyan ${FILE_NAME}\n$reset"
+
+    remove_entry
+
+    waiting 1
+}
+
 function check_action {
-    [ -e "$SCHED_FILE" ] || waiting
-    [ `wc -l $SCHED_FILE | awk '{print $1}'` -lt 1 ] && waiting
+    [ -e "$SCHED_FILE" ] || waiting $SLEEP
+    [ "`cat $SCHED_FILE`" == "" ] && waiting $SLEEP
     TODAY=`date +%Y%m%d`
     NOW=`date +%k%M`
-    while read -r DAY START FINISH CHAN; do
-        #printf "$DAY $START $FINISH $CHAN\n"
+    while read -r DAY START FINISH CHAN NAME; do
+        #printf "$DAY $START $FINISH $CHAN $NAME\n"
         break
     done < $SCHED_FILE
+    if [ $DAY == $TODAY ] && [ $START -lt $NOW ]; then
+        printf "$red\tOld Entry : Removing $CHAN $START\n"
+        remove_entry
+        waiting 1
+    fi
     if [ $DAY == $TODAY ] && [ $START == $NOW ]; then
-        ${ZAP_COMMAND} -a ${DVB_DEVICE_NUM} -f ${DVB_DEVICE_NUM} -d ${DVB_DEVICE_NUM} \
-            -c $CHANNELS_CONF -r ${CHAN} >/dev/null 2>&1 &
-
-        let PIDOF_AZAP="${!}"
-
-        if (( ${PIDOF_AZAP} == 0 )); then
-            printf "Error starting azap.\n"
-            exit 1
-        fi
-        sleep 5
-        printf "$green\tSET CHANNEL$cyan ${CHAN}\n"
-        REC_HOURS=$(((${FINISH}/100)-(${START}/100)-1))
-        if [ ${REC_HOURS} -lt 0 ]; then REC_HOURS=0;fi
-        if [ ${REC_HOURS} -gt 0 ]; then
-            REC_START=$((60-(${START}%100)))
-            REC_MINS=$((${FINISH}%100))
-        else
-            REC_START=$((${FINISH}-${START}))
-            if [ ${REC_START} -gt 60 ]; then REC_START=$((${REC_START}-40));fi
-            REC_MINS=0
-        fi
-        MINUTES=$((${REC_START}+${REC_MINS}+(${REC_HOURS}*60)))
-        declare FILE_NAME="${SAVE_FOLDER}/TV-`date +%Y.%m.%d-%H.%M`-ch${CHAN}-${MINUTES}.min.mpg"
-        dd if=/dev/dvb/adapter${DVB_DEVICE_NUM}/dvr${DVB_DEVICE_NUM} of=${FILE_NAME} conv=noerror &
-        let PIDOF_CAT="${!}"
-
-        if (( ${PIDOF_CAT} == 0 )); then
-            printf "$red\tError starting dd command on device file.\n"
-            kill ${PIDOF_AZAP}
-            exit 1
-        fi
-        printf "$yell\tRECORDING TO :$cyan ${FILE_NAME}\n"
-        SECONDS=$((${MINUTES}*60))
-        sleep ${SECONDS}s
-        kill ${PIDOF_CAT} && wait ${PIDOF_CAT} 2> /dev/null
-
-        kill ${PIDOF_AZAP} && wait ${PIDOF_AZAP} 2> /dev/null
-
-
-        printf "$yell\tFINISHED REC :$cyan ${FILE_NAME}\n$reset"
-
-        sed "/$DAY $START $FINISH $CHAN/d" $SCHED_FILE > /tmp/dummy
-        mv /tmp/dummy $SCHED_FILE
-
-        waiting
+        record_entry
     else
-        waiting
+        waiting $SLEEP
     fi
 }
 
 function waiting {
-    sleep $SLEEP && check_action
+    sleep $1 && check_action
 }
 
 check_action
