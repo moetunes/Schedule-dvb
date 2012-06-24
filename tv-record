@@ -16,10 +16,12 @@ declare -i DAY="0"
 declare -i START="0"
 declare -i FINISH="0"
 declare CHAN="0"
+declare NAME="0"
 declare -i MINUTES="0"
 declare -i REC_START="0"
 declare -i REC_HOURS="0"
 declare -i REC_MINS="0"
+declare -i howlong=$SLEEP
 
 declare -i PIDOF_AZAP=0
 declare -i PIDOF_CAT=0
@@ -32,7 +34,11 @@ white='\033[1;37m'
 reset='\033[0m'
 
 function remove_entry {
-    sed "/$DAY $START $FINISH $CHAN $NAME/d" $SCHED_FILE > /tmp/dummy
+    if [ "$NAME" == "" ]; then
+        sed "/$DAY $START $FINISH $CHAN/d" $SCHED_FILE > /tmp/dummy
+    else
+        sed "/$DAY $START $FINISH $CHAN $NAME/d" $SCHED_FILE > /tmp/dummy
+    fi
     mv /tmp/dummy $SCHED_FILE
 }
 
@@ -86,13 +92,13 @@ function record_entry {
     printf "$yell\tFINISHED REC :$cyan ${FILE_NAME}\n$reset"
 
     remove_entry
-
-    waiting 1
 }
 
-function check_action {
-    [ -e "$SCHED_FILE" ] || waiting $SLEEP
-    [ "`cat $SCHED_FILE`" == "" ] && waiting $SLEEP
+while true; do
+    sleep $howlong
+    howlong=$SLEEP
+    [ -e "$SCHED_FILE" ] || continue
+    [ "`cat $SCHED_FILE`" == "" ] && continue
     TODAY=`date +%Y%m%d`
     NOW=`date +%k%M`
     while read -r DAY START FINISH CHAN NAME; do
@@ -102,19 +108,12 @@ function check_action {
     if [ $DAY == $TODAY ] && [ $START -lt $NOW ]; then
         printf "$red\tOld Entry : Removing $CHAN $START\n"
         remove_entry
-        waiting 1
+        howlong=1
+        continue
     fi
     if [ $DAY == $TODAY ] && [ $START == $NOW ]; then
         record_entry
-    else
-        waiting $SLEEP
     fi
-}
-
-function waiting {
-    sleep $1 && check_action
-}
-
-check_action
+done
 
 exit 0
