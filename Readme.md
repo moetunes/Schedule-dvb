@@ -1,7 +1,8 @@
 ##Schedule DVB recordings
 
 There's two bash scripts with declarations at the top. Uses the channels
-in a channel.conf.
+in a channel.conf, which should be edited so the channels don't have a space in
+the name.
 
 ###TV_SCHED
 
@@ -12,15 +13,15 @@ shows any existing schedules, gives an example of an entry,
 takes a new entry and checks for time conflicts and format, 
 adds the entry to the schedule file then loops in case there's more entries.
 
+Press enter to exit
+
 Date is YearMonthDay with Month and Day zero padded.
 
-e.g. 20120611
+e.g. 20120601
 
 No leading zeros on the time and time is in 24hr format
 
 e.g. 745 1130 1900
-
-Press enter to exit
 
 Press   *r space number*   to remove an entry from the list
 
@@ -33,6 +34,7 @@ For convenience:
     * three dots for the day after tomorrow
 
 
+Declarations
 
     * declare CHANNEL_CONF="${HOME}/Mychannels.conf"
 
@@ -46,6 +48,8 @@ For convenience:
 ###TV_RECORD
 
 **Sits in the background periodically checking the schedule file for something to record.**
+
+Declarations
 
 	* declare -i DVB_DEVICE_NUM="0"
 
