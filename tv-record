@@ -113,6 +113,7 @@ while true; do
     fi
     if [ $DAY == $TODAY ] && [ $START == $NOW ]; then
         record_entry
+        howlong=1
     fi
 done
 
