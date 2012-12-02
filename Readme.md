@@ -23,7 +23,7 @@ No leading zeros on the time and time is in 24hr format
 
 e.g. 745 1130 1900
 
-Press   *<r><space><number>*   to remove an entry from the list
+Press   *r space number*   to remove an entry from the list
 
 For convenience:
 
