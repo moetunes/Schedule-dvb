@@ -23,7 +23,7 @@ No leading zeros on the time and time is in 24hr format
 
 e.g. 745 1130 1900
 
-Press   *r space number*   to remove an entry from the list
+Press   *<r><space><number>*   to remove an entry from the list
 
 For convenience:
 
@@ -74,3 +74,17 @@ Declarations
 	* declare -i SLEEP=15
 
 	* Time (in seconds) to wait between checks for something to record
+
+**Bonus for Gold Members**
+
+###TV_SELECT
+
+**Select DVB channel to watch with mplayer**
+
+Reads the channels from ~/.mplayer/channels.conf
+
+and displays them separately on buttons using xmessage
+
+for easy selection.
+
+Opens selected DVB channel in mplayer.

@@ -58,7 +58,7 @@ function get_channels {
 function get_input {
     check_file $SCHED_FILE
     printf "$green\tAdd Day, Start & Finish Times, Channel and Name\n\
-    \te.g. 20120607 930 1330 9.1 MovieName\n\tOr Press Enter To Exit\n$yell\t"
+    \te.g. 20120607 930 1330 9.1 MovieName\n\tOr Press Enter To Exit\n\t$yell"
 
     read DAY START FINISH CHAN NAME
     check_input

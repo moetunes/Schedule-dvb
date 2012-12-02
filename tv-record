@@ -44,7 +44,7 @@ function remove_entry {
 
 function record_entry {
     ${ZAP_COMMAND} -a ${DVB_DEVICE_NUM} -f ${DVB_DEVICE_NUM} -d ${DVB_DEVICE_NUM} \
-        -c $CHANNELS_CONF -r ${CHAN} >/dev/null 2>&1 &
+        -c $CHANNELS_CONF -r ${CHAN} -p >/dev/null 2>&1 &
     PIDOF_AZAP=$!
 
     if [ "$PIDOF_AZAP" == "" ]; then
@@ -116,5 +116,6 @@ while true; do
         howlong=1
     fi
 done
+
 
 exit 0
