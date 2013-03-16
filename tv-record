@@ -22,6 +22,8 @@ declare -i REC_START="0"
 declare -i REC_HOURS="0"
 declare -i REC_MINS="0"
 declare -i howlong=$SLEEP
+declare next_entry=""
+declare current_entry=""
 
 declare -i PIDOF_AZAP=0
 declare -i PIDOF_CAT=0
@@ -47,12 +49,13 @@ function record_entry {
         -c $CHANNELS_CONF -r ${CHAN} -p >/dev/null 2>&1 &
     PIDOF_AZAP=$!
 
+    sleep 3
     if [ "$PIDOF_AZAP" == "" ]; then
         printf "$red\tError starting ${ZAP_COMMAND}.\n\tFAILED: $CHAN $START\n"
         remove_entry
         exit 1
     fi
-    printf "$green\tSET CHANNEL$cyan ${CHAN}\n"
+    printf "$green\tSET CHANNEL$cyan ${CHAN}\n$green\tRECORDING$white $NAME\n"
     REC_MINS=$((${START}%100))
     REC_HOURS=0
     MINUTES=0
@@ -69,7 +72,7 @@ function record_entry {
     if [ "$NAME" == "" ]; then
         declare FILE_NAME="${SAVE_FOLDER}/TV-`date +%Y%m%d-%H%M`-ch.${CHAN}-${MINUTES}.min.mpg"
     else
-        declare FILE_NAME="${SAVE_FOLDER}/TV-${NAME}-${MINUTES}.min.mpg"
+        declare FILE_NAME="${SAVE_FOLDER}/TV-${NAME}-${CHAN}-${MINUTES}.min.mpg"
     fi
     dd if=/dev/dvb/adapter${DVB_DEVICE_NUM}/dvr${DVB_DEVICE_NUM} \
         of=${FILE_NAME} conv=noerror &
@@ -94,6 +97,8 @@ function record_entry {
     remove_entry
 }
 
+howlong=1
+printf "${green}Waiting to record ....\n"
 while true; do
     sleep $howlong
     howlong=$SLEEP
@@ -101,16 +106,18 @@ while true; do
     [ "`cat $SCHED_FILE`" == "" ] && continue
     TODAY=`date +%Y%m%d`
     NOW=`date +%k%M`
-    while read -r DAY START FINISH CHAN NAME; do
-        #printf "$DAY $START $FINISH $CHAN $NAME\n"
-        break
-    done < $SCHED_FILE
-    if [ $DAY == $TODAY ] && [ $START -lt $NOW ]; then
-        printf "$red\tOld Entry : Removing $CHAN $START\n"
+    read -r DAY START FINISH CHAN NAME < $SCHED_FILE
+        #printf "$TODAY . $DAY . $START . $FINISH . $CHAN . $NAME\n"
+    
+    if [ $DAY == $TODAY ] && [ $START -lt $NOW ] ||  [[ $DAY -lt $TODAY ]] ; then
+        printf "$red\tOld Entry : Removing $CHAN $DAY $START\n"
         remove_entry
         howlong=1
         continue
     fi
+    next_entry="${DAY}_${START}_$NAME"
+    [ "$next_entry" != "$current_entry" ] && printf "$cyan\tNEXT RECORDING :- $yell $next_entry\n"
+    current_entry=$next_entry
     if [ $DAY == $TODAY ] && [ $START == $NOW ]; then
         record_entry
         howlong=1

@@ -13,7 +13,7 @@ shows any existing schedules, gives an example of an entry,
 takes a new entry and checks for time conflicts and format, 
 adds the entry to the schedule file then loops in case there's more entries.
 
-Press enter to exit
+Press enter to exit when done.
 
 Date is YearMonthDay with Month and Day zero padded.
 
@@ -36,11 +36,11 @@ For convenience:
 
 Declarations
 
-    * declare CHANNEL_CONF="${HOME}/Mychannels.conf"
+    * declare CHANNEL_CONF="$HOME/Mychannels.conf"
 
 	* Make sure this is the same in tv-record
 
-    * declare SCHED_FILE="${HOME}/.sched-tv"
+    * declare SCHED_FILE="$HOME/.sched-tv"
 
     * File which has the schedule
 
@@ -55,11 +55,11 @@ Declarations
 
 	* /dev/dvb/adapter? - should be ok with zero if there's only one dvb device
 
-	* declare CHANNELS_CONF="${HOME}/Mychannels.conf"
+	* declare CHANNELS_CONF="$HOME/Mychannels.conf"
 
  	* Make sure this is the same in tv-sched
 
- 	* declare SAVE_FOLDER="${HOME}/TV/tele"
+ 	* declare SAVE_FOLDER="$HOME/TV/tele"
 
 	* Directory to save recordings to.
 
